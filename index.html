@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - equirectangular panorama</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				color: #ffffff;
+				padding: 5px;
+				font-family:Monospace;
+				font-size:13px;
+				font-weight: bold;
+				text-align:center;
+			}
+
+			a {
+				color: #ffffff;
+			}
+      <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        background-color: #ffffff;
+        margin: 0;
+        overflow: hidden;
+        font-family: arial;
+      }
+      #blocker {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+      }
+      #instructions {
+        width: 100%;
+        height: 100%;
+        display: -webkit-box;
+        display: -moz-box;
+        display: box;
+        -webkit-box-orient: horizontal;
+        -moz-box-orient: horizontal;
+        box-orient: horizontal;
+        -webkit-box-pack: center;
+        -moz-box-pack: center;
+        box-pack: center;
+        -webkit-box-align: center;
+        -moz-box-align: center;
+        box-align: center;
+        color: #ffffff;
+        text-align: center;
+        cursor: pointer;
+      }
+    </style>
+		</style>
+	</head>
+	<body>
+
+		<div id="container">
+		<!-- <div id="info">
+			<a href="http://threejs.org" target="_blank">three.js webgl</a> - equirectangular panorama demo. photo by <a href="http://www.flickr.com/photos/jonragnarsson/2294472375/" target="_blank">Jón Ragnarsson</a>.<br />
+			drag equirectangular texture into the page.
+		</div> -->
+
+      <div id="blocker">
+
+        <div id="instructions">
+          <span style="font-size:40px">Click to play</span>
+          <br />
+          (MOUSE = Look around)
+        </div>
+
+      </div>
+    </div>
+
+		<script src="js/three.js"></script>
+    <script src="js/PointerLockControls.js"></script>
+
+		<script>
+
+    // POINTER LOCK
+
+    var camera, scene, renderer;
+		var geometry, material, mesh;
+		var controls;
+		var objects = [];
+		var raycaster;
+		var blocker = document.getElementById( 'blocker' );
+		var instructions = document.getElementById( 'instructions' );
+		// http://www.html5rocks.com/en/tutorials/pointerlock/intro/
+		var havePointerLock = 'pointerLockElement' in document || 'mozPointerLockElement' in document || 'webkitPointerLockElement' in document;
+		if ( havePointerLock ) {
+			var element = document.body;
+			var pointerlockchange = function ( event ) {
+				if ( document.pointerLockElement === element || document.mozPointerLockElement === element || document.webkitPointerLockElement === element ) {
+					controlsEnabled = true;
+					controls.enabled = true;
+					blocker.style.display = 'none';
+				} else {
+					controls.enabled = false;
+					blocker.style.display = '-webkit-box';
+					blocker.style.display = '-moz-box';
+					blocker.style.display = 'box';
+					instructions.style.display = '';
+				}
+			};
+			var pointerlockerror = function ( event ) {
+				instructions.style.display = '';
+			};
+      // Hook pointer lock state change events
+				document.addEventListener( 'pointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'mozpointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'webkitpointerlockchange', pointerlockchange, false );
+				document.addEventListener( 'pointerlockerror', pointerlockerror, false );
+				document.addEventListener( 'mozpointerlockerror', pointerlockerror, false );
+				document.addEventListener( 'webkitpointerlockerror', pointerlockerror, false );
+				instructions.addEventListener( 'click', function ( event ) {
+					instructions.style.display = 'none';
+					// Ask the browser to lock the pointer
+					element.requestPointerLock = element.requestPointerLock || element.mozRequestPointerLock || element.webkitRequestPointerLock;
+					element.requestPointerLock();
+				}, false );
+			} else {
+				instructions.innerHTML = 'Your browser doesn\'t seem to support Pointer Lock API';
+			}
+
+      // END POINTER LOCK
+
+			var camera, scene, renderer;
+
+			var isUserInteracting = false,
+			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+			lon = 0, onMouseDownLon = 0,
+			lat = 0, onMouseDownLat = 0,
+			phi = 0, theta = 0;
+
+      // RAYCASTING
+      var raycaster = new THREE.Raycaster();
+      var mouse = new THREE.Vector2();
+
+      function onMouseMove( event ) {
+
+        // calculate mouse position in normalized device coordinates
+        // (-1 to +1) for both components
+
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+      }
+      //
+
+			init();
+			animate();
+
+			function init() {
+
+				var container, mesh;
+        var controlsEnabled = false;
+
+				container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1100 );
+				camera.target = new THREE.Vector3( 0, 0, 0 );
+
+				scene = new THREE.Scene();
+
+        controls = new THREE.PointerLockControls( camera );
+        scene.add( controls.getObject() );
+
+        // scene.fog = new THREE.Fog( 0xffffff, 0, 750 );
+				var light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 0.75 );
+				light.position.set( 0.5, 1, 0.75 );
+				scene.add( light );
+
+        // PANORAMA IMAGE
+				var geometry = new THREE.SphereGeometry( 500, 60, 40 );
+				geometry.scale( - 1, 1, 1 );
+
+				var material = new THREE.MeshBasicMaterial( {
+					map: new THREE.TextureLoader().load( 'textures/annapurna.jpg' )
+				} );
+
+				mesh = new THREE.Mesh( geometry, material );
+
+				scene.add( mesh );
+        //
+
+				// CROSSHAIR
+				material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+
+				// crosshair size
+				var x = 0.1, y = 0.1;
+
+				geometry = new THREE.Geometry();
+
+				// crosshair
+				geometry.vertices.push(new THREE.Vector3(0, y, 0));
+				geometry.vertices.push(new THREE.Vector3(0, -y, 0));
+				geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+				geometry.vertices.push(new THREE.Vector3(x, 0, 0));
+				geometry.vertices.push(new THREE.Vector3(-x, 0, 0));
+
+				var crosshair = new THREE.Line( geometry, material );
+
+				// place it in the center
+				// var crosshairPercentX = 50;
+				// var crosshairPercentY = 50;
+				// var crosshairPositionX = (crosshairPercentX / 100) * 2 - 1;
+				// var crosshairPositionY = (crosshairPercentY / 100) * 2 - 1;
+
+				// crosshair.position.x = crosshairPositionX * camera.aspect;
+				// crosshair.position.y = crosshairPositionY;
+				crosshair.position.x = 0
+				crosshair.position.y = 10
+
+				crosshair.position.z = -10
+
+				scene.add( crosshair );
+				// scene.add( camera );
+				//
+
+        // boxes
+        geometry = new THREE.BoxGeometry( 15, 15, 15 );
+        for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
+          var face = geometry.faces[ i ];
+          face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+          face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+          face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+        }
+        for ( var i = 0; i < 50; i ++ ) {
+          material = new THREE.MeshPhongMaterial( { specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+          var mesh = new THREE.Mesh( geometry, material );
+          mesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
+          mesh.position.y = Math.floor( Math.random() * 20 - 10 ) * 20;
+          mesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
+          scene.add( mesh );
+          material.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+          objects.push( mesh );
+        }
+        //
+
+				// Plane Geometry
+				var x = -270
+				var z = -270
+				// for (var i = 0; i < 7; i++ ){
+					geometry = new THREE.PlaneGeometry( 30, 30 );
+					material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide });
+					var plane = new THREE.Mesh( geometry, material );
+					plane.position.x = x
+					plane.position.y = 10
+					plane.position.z = z
+					scene.add( plane );
+					objects.push( plane );
+					// x += 50
+					// z += 50
+				// }
+				//
+
+        // FLOOR
+        // geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+				// geometry.rotateX( - Math.PI / 2 );
+				// for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
+				// 	var vertex = geometry.vertices[ i ];
+				// 	vertex.x += Math.random() * 20 - 10;
+				// 	vertex.y += Math.random() * 2;
+				// 	vertex.z += Math.random() * 20 - 10;
+				// }
+				// for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
+				// 	var face = geometry.faces[ i ];
+				// 	face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+				// 	face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+				// 	face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+				// }
+				// material = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
+				// mesh = new THREE.Mesh( geometry, material );
+				// scene.add( mesh );
+        // FLOOR
+
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+        window.addEventListener( 'mousemove', onMouseMove, false );
+        window.addEventListener( 'click', onMouseClick, false );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+      var intersectableObjects = []
+      for ( var i = 4; i < scene.children.length; i++) {
+        intersectableObjects.push(scene.children[i])
+      }
+
+			var selected = false
+			var objSelected
+
+			function onMouseClick() {
+				if (selected === true) {
+					objSelected.material.color.set( 0xff0000 )
+				}
+			}
+
+			function grow(objSelected) {
+				if (objSelected.scale.x < 1.4){
+					var interval = setTimeout(() => {
+						objSelected.scale.x += 0.1
+						objSelected.scale.y += 0.1
+						objSelected.scale.z += 0.1
+					}, 50)
+				}
+			}
+
+			function animate() {
+
+				// update the picking ray with the camera and mouse position
+				raycaster.setFromCamera( mouse, camera );
+
+				// calculate objects intersecting the picking ray
+				var intersects = raycaster.intersectObjects( intersectableObjects );
+
+				if (intersects.length > 0) {
+					for ( var i = 0; i < intersects.length; i++ ) {
+						selected = true
+						objSelected = intersects[i].object
+						grow(objSelected)
+						// intersects[ i ].object.material.color.set( 0xff0000 );
+					}
+				} else {
+					selected = false
+					for ( var i = 0; i < objects.length; i++ ){
+						objects[i].scale.x = 1
+						objects[i].scale.y = 1
+						objects[i].scale.z = 1
+					}
+				}
+
+				objects[50].position.x += 1
+				objects[50].position.z += 1
+				// console.log("x: " + objects[50].position.x)
+				// console.log("z: " + objects[50].position.z)
+
+				var crosshair = scene.children[3]
+				var direction = raycaster.ray.direction
+
+				crosshair.position.x = direction.x * 10
+				crosshair.position.y = direction.y * 10 + 10
+				crosshair.position.z = direction.z * 10
+
+
+				requestAnimationFrame( animate );
+        renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
