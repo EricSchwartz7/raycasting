@@ -183,7 +183,7 @@
 				scene.add( light );
 
         // PANORAMA IMAGE
-				var geometry = new THREE.SphereGeometry( 500, 60, 40 );
+				var geometry = new THREE.BoxGeometry( 500, 60, 40 );
 				geometry.scale( - 1, 1, 1 );
 
 				var material = new THREE.MeshBasicMaterial( {
@@ -230,41 +230,67 @@
 				//
 
         // boxes
-        geometry = new THREE.BoxGeometry( 15, 15, 15 );
-        for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
-          var face = geometry.faces[ i ];
-          face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-          face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-          face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-        }
-        for ( var i = 0; i < 50; i ++ ) {
-          material = new THREE.MeshPhongMaterial( { specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
-          var mesh = new THREE.Mesh( geometry, material );
-          mesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
-          mesh.position.y = Math.floor( Math.random() * 20 - 10 ) * 20;
-          mesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
-          scene.add( mesh );
-          material.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
-          objects.push( mesh );
-        }
+        // geometry = new THREE.BoxGeometry( 15, 15, 15 );
+        // for ( var i = 0, l = geometry.faces.length; i < l; i ++ ) {
+        //   var face = geometry.faces[ i ];
+        //   face.vertexColors[ 0 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+        //   face.vertexColors[ 1 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+        //   face.vertexColors[ 2 ] = new THREE.Color().setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+        // }
+        // for ( var i = 0; i < 50; i ++ ) {
+        //   material = new THREE.MeshPhongMaterial( { specular: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+        //   var mesh = new THREE.Mesh( geometry, material );
+        //   mesh.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
+        //   mesh.position.y = Math.floor( Math.random() * 20 - 10 ) * 20;
+        //   mesh.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
+        //   scene.add( mesh );
+        //   material.color.setHSL( Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75 );
+        //   objects.push( mesh );
+        // }
         //
 
 				// Plane Geometry
 				var x = -270
-				var z = -270
-				// for (var i = 0; i < 7; i++ ){
+				var z = -100
+
 					geometry = new THREE.PlaneGeometry( 30, 30 );
 					material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide });
 					var plane = new THREE.Mesh( geometry, material );
-					plane.position.x = x
+					plane.position.x = -180
 					plane.position.y = 10
-					plane.position.z = z
+					plane.position.z = 0
+					plane.rotation.y = Math.PI / 2
 					scene.add( plane );
 					objects.push( plane );
-					// x += 50
-					// z += 50
-				// }
-				//
+
+					geometry = new THREE.PlaneGeometry( 30, 30 );
+					material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide });
+					var plane = new THREE.Mesh( geometry, material );
+					plane.position.x = 0
+					plane.position.z = -200
+					plane.rotation.y = 0
+					scene.add( plane );
+					objects.push( plane );
+
+					geometry = new THREE.PlaneGeometry( 30, 30 );
+					material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide });
+					var plane = new THREE.Mesh( geometry, material );
+					plane.position.x = 180
+					plane.position.z = 0
+					plane.rotation.y = Math.PI / 2
+					scene.add( plane );
+					objects.push( plane );
+
+					geometry = new THREE.PlaneGeometry( 30, 30 );
+					material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide });
+					var plane = new THREE.Mesh( geometry, material );
+					plane.position.x = 0
+					plane.position.z = 200
+					plane.rotation.y = 0
+					scene.add( plane );
+					objects.push( plane );
+
+
 
         // FLOOR
         // geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
@@ -332,6 +358,7 @@
 				}
 			}
 
+
 			function animate() {
 
 				// update the picking ray with the camera and mouse position
@@ -356,8 +383,8 @@
 					}
 				}
 
-				objects[50].position.x += 1
-				objects[50].position.z += 1
+				// objects[50].position.x += 1
+				// objects[50].position.z += 1
 				// console.log("x: " + objects[50].position.x)
 				// console.log("z: " + objects[50].position.z)
 
